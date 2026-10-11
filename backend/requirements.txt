@@ -1,0 +1,16 @@
+fastapi==0.143.0
+uvicorn==0.54.0
+pydantic==2.10.6
+sqlalchemy==2.0.54
+python-jose[cryptography]==3.5.0
+passlib==1.7.4
+bcrypt==4.0.1
+python-multipart==0.0.32
+pillow==12.3.0
+imagehash==4.3.2
+email-validator==2.3.0
+httpx==0.28.1
+numpy==2.2.6
+torch --extra-index-url https://download.pytorch.org/whl/cpu
+transformers
+timm
