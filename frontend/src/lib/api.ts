@@ -1,5 +1,5 @@
-// Support dynamic backend URL from environment or fallback to relative/Render URL
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://naturequest-api.onrender.com';
+// Support dynamic backend URL from environment or fallback to active Render URL
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://aturequest-api.onrender.com';
 const API_BASE = `${BACKEND_URL.replace(/\/$/, '')}/api/v1`;
 
 function getAuthHeaders(): HeadersInit {
