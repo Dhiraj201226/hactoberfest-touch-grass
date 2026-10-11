@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+node_modules/
+dist/
+.pytest_cache/
+naturequest.db
+uploads/*.png
+uploads/*.jpg
+uploads/*.jpeg
+uploads/*.webp
+!uploads/.gitkeep
+.env
