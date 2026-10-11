@@ -6,6 +6,58 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../co
 import { apiRequest } from '../lib/api';
 import { Submission } from '../types';
 
+// Client-side image optimizer: compresses high-res phone captures down to ~300KB for lightning-fast uploads
+async function compressImageForUpload(file: File, maxDim: number = 1600, quality: number = 0.82): Promise<File> {
+  if (file.size <= 500 * 1024) return file; // Already lightweight
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressed);
+              } else {
+                resolve(file);
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        } else {
+          resolve(file);
+        }
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
 export const SubmitEvidencePage: React.FC = () => {
   const { questId } = useParams<{ questId: string }>();
   const [searchParams] = useSearchParams();
@@ -16,6 +68,7 @@ export const SubmitEvidencePage: React.FC = () => {
   const [preview, setPreview] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submissionStep, setSubmissionStep] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,17 +93,29 @@ export const SubmitEvidencePage: React.FC = () => {
 
     setLoading(true);
     setError(null);
+    setSubmissionStep('Optimizing photo for fast transmission...');
 
     try {
+      const optimizedFile = await compressImageForUpload(file);
+
+      setSubmissionStep('Uploading evidence to server...');
       const formData = new FormData();
       formData.append('quest_attempt_id', attemptId);
       formData.append('description', description);
-      formData.append('file', file);
+      formData.append('file', optimizedFile);
+
+      // Give visual feedback for neural inspection
+      const stepTimer = setTimeout(() => {
+        setSubmissionStep('NeuralEye verifying optical camera authenticity...');
+      }, 900);
 
       const submission = await apiRequest<Submission>('/submissions', {
         method: 'POST',
         body: formData,
       });
+
+      clearTimeout(stepTimer);
+      setSubmissionStep('Verified! Loading results...');
 
       // Navigate to verification results view
       navigate(`/app/submissions/${submission.id}`);
@@ -58,6 +123,7 @@ export const SubmitEvidencePage: React.FC = () => {
       setError(err.message || 'Evidence submission failed.');
     } finally {
       setLoading(false);
+      setSubmissionStep('');
     }
   };
 
@@ -149,10 +215,14 @@ export const SubmitEvidencePage: React.FC = () => {
               type="submit"
               variant="primary"
               size="lg"
-              className="w-full text-base font-bold shadow-soft-md"
+              className="w-full text-base font-bold shadow-soft-md flex items-center justify-center gap-2"
               loading={loading}
             >
-              Verify & Submit Evidence
+              {loading ? (
+                <span>{submissionStep || 'Verifying & Submitting...'}</span>
+              ) : (
+                'Verify & Submit Evidence'
+              )}
             </Button>
           </form>
         </CardContent>
