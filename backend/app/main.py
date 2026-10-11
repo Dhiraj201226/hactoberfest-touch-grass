@@ -6,7 +6,6 @@ from app.core.config import settings
 from app.db.session import engine, Base, SessionLocal
 from app.db.seed import seed_database
 from app.api.v1 import auth, quests, submissions, gamification, users, admin
-from app.services.neuraleye import preload_neuraleye
 
 # Initialize database tables
 Base.metadata.create_all(bind=engine)
@@ -18,18 +17,16 @@ with SessionLocal() as db:
 # Create upload directory
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
-# Pre-warm NeuralEye vision transformer in background so first user submission never hangs
-preload_neuraleye()
-
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url=f"{settings.API_V1_STR}/docs"
 )
 
-# CORS configuration
+# Resilient CORS: allows all Vercel domains, localhost, and wildcard fallback
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:.*",
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
