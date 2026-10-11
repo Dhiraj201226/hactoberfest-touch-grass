@@ -6,32 +6,20 @@ from app.core.config import settings
 class QuestGeneratorService:
     def __init__(self):
         self.ollama_url = settings.OLLAMA_BASE_URL
-        self.model = settings.OLLAMA_MODEL
+        self.model = "qwen2.5:1.5b"
 
     async def generate_quest(self, category: str, difficulty: str = "easy") -> Dict[str, Any]:
         """
-        Attempts to prompt Ollama open-weight LLM (e.g. Qwen or Gemma).
-        If offline, gracefully falls back with clear transparency.
+        Prompts Ollama open-weight LLM (Qwen 2.5: 1.5B, Apache 2.0 license).
+        If offline or timed out, gracefully falls back to curated catalog with transparency.
         """
-        prompt = f"""You are a master nature educator and outdoor quest designer for NatureQuest AI.
-Create a real-world outdoor nature quest for category: '{category}', difficulty: '{difficulty}'.
-The quest MUST encourage users to put their phones away and experience the living world.
-Ensure safety: no trespassing, no dangerous cliffs, no harming wildlife.
-
-Respond ONLY with valid JSON matching this exact structure:
-{{
-  "title": "Title of quest",
-  "category": "{category}",
-  "difficulty": "{difficulty}",
-  "duration_minutes": 15,
-  "description": "Short captivating description",
-  "instructions": ["Step 1", "Step 2", "Step 3"],
-  "completion_criteria": ["Criteria 1", "Criteria 2"],
-  "safety_notes": ["Safety note 1", "Safety note 2"]
-}}
-"""
+        prompt = (
+            f"Return a JSON object for an outdoor nature quest for category '{category}' and difficulty '{difficulty}'. "
+            f"Fields required: "
+            f"title (string), description (string), instructions (list of strings)."
+        )
         try:
-            async with httpx.AsyncClient(timeout=4.0) as client:
+            async with httpx.AsyncClient(timeout=45.0) as client:
                 res = await client.post(
                     f"{self.ollama_url}/api/generate",
                     json={
@@ -45,16 +33,27 @@ Respond ONLY with valid JSON matching this exact structure:
                     data = res.json()
                     response_text = data.get("response", "{}")
                     parsed = json.loads(response_text)
-                    # Enforce server-controlled XP and schema validation
-                    parsed["xp_reward"] = 20 if difficulty == "easy" else (35 if difficulty == "medium" else 50)
-                    parsed["source_type"] = "ai_generated"
-                    parsed["evidence_type"] = "photo"
-                    return parsed
-        except Exception:
-            # LLM service offline or uninstalled
-            pass
+                    if "title" in parsed and "instructions" in parsed:
+                        # Enforce server-controlled XP, safety, and source type
+                        parsed["category"] = category
+                        parsed["difficulty"] = difficulty
+                        parsed["duration_minutes"] = parsed.get("duration_minutes", 15)
+                        parsed["xp_reward"] = 20 if difficulty == "easy" else (35 if difficulty == "medium" else 50)
+                        parsed["source_type"] = f"ai_generated_{self.model}"
+                        parsed["evidence_type"] = "photo"
+                        parsed["completion_criteria"] = parsed.get("completion_criteria", [
+                            "Submit one clear photograph matching the mission instructions",
+                            "Record one natural observation note"
+                        ])
+                        parsed["safety_notes"] = parsed.get("safety_notes", [
+                            "Stay on designated trails and respect private property",
+                            "Do not pick rare living plants or disturb active wildlife nests"
+                        ])
+                        return parsed
+        except Exception as e:
+            print(f"Ollama generation fallback note: {e}")
 
-        # Clean, explicit fallback to curated catalog
+        # Clean fallback to curated catalog
         return self._get_fallback_quest(category, difficulty)
 
     def _get_fallback_quest(self, category: str, difficulty: str) -> Dict[str, Any]:
