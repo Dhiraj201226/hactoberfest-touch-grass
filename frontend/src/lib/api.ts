@@ -1,4 +1,6 @@
-const API_BASE = '/api/v1';
+// Support dynamic backend URL from environment or fallback to relative/Render URL
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://naturequest-api.onrender.com';
+const API_BASE = `${BACKEND_URL.replace(/\/$/, '')}/api/v1`;
 
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('nq_token');
@@ -8,8 +10,17 @@ function getAuthHeaders(): HeadersInit {
   };
 }
 
+export function getMediaUrl(storageKey: string): string {
+  if (!storageKey) return '';
+  if (storageKey.startsWith('http')) return storageKey;
+  return `${BACKEND_URL.replace(/\/$/, '')}/uploads/${storageKey}`;
+}
+
 export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+  const url = endpoint.startsWith('http') 
+    ? endpoint 
+    : `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    
   const headers = {
     ...getAuthHeaders(),
     ...(options.headers || {}),

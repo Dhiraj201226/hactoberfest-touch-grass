@@ -4,7 +4,7 @@ import { ShieldCheck, CheckCircle2, XCircle, AlertTriangle, ArrowRight, Award, C
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { apiRequest } from '../lib/api';
+import { apiRequest, getMediaUrl } from '../lib/api';
 import { Submission } from '../types';
 
 export const SubmissionDetailPage: React.FC = () => {
@@ -69,7 +69,7 @@ export const SubmissionDetailPage: React.FC = () => {
         {/* Upload Media Preview */}
         <div className="max-h-56 bg-forest-950 flex items-center justify-center overflow-hidden p-2">
           <img
-            src={`/uploads/${submission.media_storage_key}`}
+            src={getMediaUrl(submission.media_storage_key)}
             alt="Submission evidence"
             className="w-full h-full max-h-52 object-contain rounded-xl"
             onError={(e: any) => {

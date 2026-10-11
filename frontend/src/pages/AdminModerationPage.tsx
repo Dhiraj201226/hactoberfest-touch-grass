@@ -3,7 +3,7 @@ import { ShieldAlert, Check, X, Eye, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { apiRequest } from '../lib/api';
+import { apiRequest, getMediaUrl } from '../lib/api';
 
 export const AdminModerationPage: React.FC = () => {
   const [submissions, setSubmissions] = useState<any[]>([]);
@@ -77,7 +77,7 @@ export const AdminModerationPage: React.FC = () => {
                 <div className="flex items-start gap-4">
                   <div className="w-20 h-20 rounded-xl bg-forest-950 overflow-hidden flex-shrink-0">
                     <img
-                      src={`/uploads/${sub.media_storage_key}`}
+                      src={getMediaUrl(sub.media_storage_key)}
                       alt="Review"
                       className="w-full h-full object-cover"
                       onError={(e: any) => {
