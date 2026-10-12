@@ -77,15 +77,6 @@ class NeuralEyeDetector:
             provenance_detected = False
             provenance_reasons = []
 
-            # Check for visible generative AI star in pixel matrix
-            if w >= 250 and h >= 250:
-                corner = np.array(img_rgb.crop((w - 150, h - 150, w, h)).convert("L"))
-                bright_mask = corner > 150
-                bright_count = int(np.sum(bright_mask))
-                if 400 <= bright_count <= 2500:
-                    provenance_detected = True
-                    provenance_reasons.append("Visual Gemini/Imagen 4-point generative star watermark in pixels")
-
             # Binary C2PA / SynthID / Generative header inspection (<5ms)
             with open(file_path, "rb") as f:
                 raw_bytes = f.read()
@@ -154,7 +145,8 @@ class NeuralEyeDetector:
                     for p in preds:
                         label = p["label"].lower()
                         score = float(p["score"])
-                        if label in ["artificial", "fake", "ai"] and score > 0.50:
+                        # Require confident artificial classification (>= 75%) to prevent false positives on genuine outdoor foliage
+                        if label in ["artificial", "fake", "ai"] and score >= 0.75:
                             model_predicted_artificial = True
                             model_confidence = score
                             model_details = f"SwinV2 neural classifier flagged artificial (Score: {score:.2%})"
