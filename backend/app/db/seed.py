@@ -1,8 +1,40 @@
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from app.models.models import Quest, Achievement, Challenge
+from app.models.models import Quest, Achievement, Challenge, User
+from app.core.security import get_password_hash
 
 def seed_database(db: Session):
+    # Seed default demo/admin user accounts if empty
+    if db.query(User).filter(User.email == "demo@naturequest.app").first() is None:
+        demo_user = User(
+            email="demo@naturequest.app",
+            username="NatureExplorer",
+            display_name="Demo Naturalist",
+            hashed_password=get_password_hash("NaturePass123!"),
+            role="user",
+            xp=120,
+            level=2,
+            current_streak=3,
+            longest_streak=5,
+            onboarding_completed=True
+        )
+        db.add(demo_user)
+
+    if db.query(User).filter(User.email == "admin@naturequest.app").first() is None:
+        admin_user = User(
+            email="admin@naturequest.app",
+            username="RangerAdmin",
+            display_name="Ranger Lead",
+            hashed_password=get_password_hash("AdminPass123!"),
+            role="admin",
+            xp=500,
+            level=5,
+            current_streak=7,
+            longest_streak=14,
+            onboarding_completed=True
+        )
+        db.add(admin_user)
+
     # Seed Achievements if empty
     if db.query(Achievement).count() == 0:
         achievements = [
