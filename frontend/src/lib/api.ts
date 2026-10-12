@@ -38,6 +38,12 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('nq_token');
+      localStorage.removeItem('nq_user');
+      window.location.href = '/login?expired=true';
+      throw new Error('Your session has expired. Please log in again.');
+    }
     const errorData = await response.json().catch(() => ({ detail: 'Network response was not ok' }));
     throw new Error(errorData.detail || errorData.message || 'Request failed');
   }
