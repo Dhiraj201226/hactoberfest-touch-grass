@@ -60,6 +60,22 @@ async def ensure_cors_headers(request, call_next):
         response.headers["Access-Control-Allow-Credentials"] = "true"
     return response
 
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request, exc: HTTPException):
+    from fastapi.responses import JSONResponse
+    origin = request.headers.get("origin")
+    headers = exc.headers or {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Access-Control-Allow-Methods"] = "*"
+        headers["Access-Control-Allow-Headers"] = "*"
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=headers
+    )
+
 # Mount uploaded media static files safely
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
